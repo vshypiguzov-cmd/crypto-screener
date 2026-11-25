@@ -11,7 +11,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-# ВСТАВЬТЕ СЮДА ВАШ ТОКЕН ="9002976959:AAHUPvJv3SMhqJqfheel5W5js-Lv1G124_Y"
+BOT_TOKEN = "9002976959:AAHUPvJv3SMhqJqfheel5W5js-Lv1G124_Y"
+
+bot = Bot(token=BOT_TOKEN)
+
 
 
 
