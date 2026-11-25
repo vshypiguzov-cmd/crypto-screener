@@ -240,54 +240,135 @@ async def set_short_pct(message: types.Message, state: FSMContext):
     await message.answer("❌ Введите корректное число (например, 10).")
 
 
-async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
+import gzip
+
+live_prices = {
+    "ByBit": {},
+    "BingX": {}
+}
+
+BYBIT_DEFAULT_SYMBOLS = [
+    "BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT", "AVAXUSDT",
+    "LINKUSDT", "DOTUSDT", "MATICUSDT", "LTCUSDT", "UNIUSDT", "ATOMUSDT", "APTUSDT",
+    "ARBUSDT", "OPUSDT", "SUIUSDT", "SEIUSDT", "TIAUSDT", "INJUSDT", "RNDRUSDT",
+    "FETUSDT", "NEARUSDT", "FILUSDT", "AAVEUSDT", "SANDUSDT", "MANAUSDT", "GALAUSDT",
+    "PEPEUSDT", "WIFUSDT", "BONKUSDT", "FLOKIUSDT", "NOTUSDT", "TONUSDT", "ORDIUSDT",
+    "1000SATSUSDT", "WLDUSDT", "STXUSDT", "IMXUSDT", "RUNEUSDT", "MINAUSDT", "CFXUSDT",
+    "TRBUSDT", "LOOMUSDT", "BIGTIMEUSDT", "GASUSDT", "ARKUSDT", "MEMEUSDT", "PYTHUSDT",
+    "JTOUSDT", "ACEUSDT", "NFPUSDT", "AIUSDT", "XAIUSDT", "MANTAUSDT", "ALTUSDT",
+    "JUPUSDT", "DYMUSDT", "PIXELUSDT", "STRKUSDT", "PORTALUSDT", "AEVOUSDT", "BOMEUSDT",
+    "ETHFIUSDT", "ENAUSDT", "WUSDT", "TNSRUSDT", "SAGAUSDT", "TAOUSDT", "OMNIUSDT",
+    "REZUSDT", "BBUSDT", "IOUSDT", "ZKUSDT", "LISTAUSDT", "ZROUSDT", "BLASTUSDT",
+    "RENDERUSDT", "POPCATUSDT", "NEIROUSDT", "CATIUSDT", "HMSTRUSDT", "EIGENUSDT",
+    "MOODENGUSDT", "GOATUSDT", "PNUTUSDT", "ACTUSDT", "CHILLGUYUSDT", "VIRTUALUSDT"
+]
+
+
+async def get_bybit_symbols(session: aiohttp.ClientSession) -> list:
     urls = [
         "https://bybit.com",
         "https://bytick.com"
     ]
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
-    prices = {}
     for url in urls:
         try:
-            async with session.get(url, headers=headers, timeout=10) as resp:
+            async with session.get(url, timeout=8) as resp:
                 if resp.status == 200:
                     data = await resp.json(content_type=None)
-                    for item in data.get("result", {}).get("list", []):
-                        symbol = item.get("symbol", "")
-                        if symbol.endswith("USDT"):
-                            prices[symbol] = float(item["lastPrice"])
-                    exchange_stats["ByBit"] = f"OK ({len(prices)} монет)"
-                    return prices
-                else:
-                    exchange_stats["ByBit"] = f"HTTP {resp.status}"
+                    syms = [
+                        item["symbol"]
+                        for item in data.get("result", {}).get("list", [])
+                        if item.get("symbol", "").endswith("USDT") and item.get("status") == "Trading"
+                    ]
+                    if syms:
+                        return syms
+        except Exception:
+            pass
+    return BYBIT_DEFAULT_SYMBOLS
+
+
+async def bybit_ws_worker():
+    ws_url = "wss://://bybit.com"
+    while True:
+        try:
+            async with aiohttp.ClientSession() as session:
+                symbols = await get_bybit_symbols(session)
+                async with session.ws_connect(ws_url, heartbeat=20) as ws:
+                    exchange_stats["ByBit"] = "Подключение WS..."
+                    # Подписываемся пачками по 50 монет
+                    for i in range(0, len(symbols), 50):
+                        chunk = [f"tickers.{s}" for s in symbols[i:i + 50]]
+                        await ws.send_json({"op": "subscribe", "args": chunk})
+                        await asyncio.sleep(0.1)
+
+                    async for msg in ws:
+                        if msg.type == aiohttp.WSMsgType.TEXT:
+                            data = json.loads(msg.data)
+                            topic = data.get("topic", "")
+                            if topic.startswith("tickers."):
+                                d = data.get("data", {})
+                                sym = d.get("symbol")
+                                last_p = d.get("lastPrice")
+                                if sym and last_p:
+                                    live_prices["ByBit"][sym] = float(last_p)
+                                    exchange_stats["ByBit"] = f"OK WS ({len(live_prices['ByBit'])} монет)"
+                        elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                            break
         except Exception as e:
-            exchange_stats["ByBit"] = f"Ошибка: {str(e)[:30]}"
-    return prices
+            exchange_stats["ByBit"] = f"WS реконнект: {str(e)[:25]}"
+            await asyncio.sleep(5)
 
 
+async def bingx_ws_worker():
+    ws_url = "wss://://bingx.com"
+    while True:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.ws_connect(ws_url, heartbeat=20) as ws:
+                    exchange_stats["BingX"] = "Подключение WS..."
+                    await ws.send_json({
+                        "id": "all_prices",
+                        "reqType": "sub",
+                        "dataType": "all@lastPrice"
+                    })
 
-async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
-    url = "https://bingx.com"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
-    prices = {}
-    try:
-        async with session.get(url, headers=headers, timeout=10) as resp:
-            if resp.status != 200:
-                exchange_stats["BingX"] = f"HTTP {resp.status}"
-                return prices
-            data = await resp.json(content_type=None)
-            for item in data.get("data", []):
-                symbol = item.get("symbol", "").replace("-", "")
-                if symbol.endswith("USDT"):
-                    prices[symbol] = float(item["lastPrice"])
-            exchange_stats["BingX"] = f"OK ({len(prices)} монет)"
-    except Exception as e:
-        exchange_stats["BingX"] = f"Ошибка: {str(e)[:30]}"
-    return prices
+                    async for msg in ws:
+                        raw = None
+                        if msg.type == aiohttp.WSMsgType.BINARY:
+                            try:
+                                raw = gzip.decompress(msg.data).decode("utf-8")
+                            except Exception:
+                                raw = msg.data.decode("utf-8", errors="ignore")
+                        elif msg.type == aiohttp.WSMsgType.TEXT:
+                            raw = msg.data
+                        elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                            break
+
+                        if not raw:
+                            continue
+                        if raw == "Ping":
+                            await ws.send_str("Pong")
+                            continue
+
+                        data = json.loads(raw)
+                        if "ping" in data:
+                            await ws.send_json({"pong": data["ping"]})
+                            continue
+
+                        if data.get("dataType") == "all@lastPrice":
+                            items = data.get("data", [])
+                            if isinstance(items, dict):
+                                items = [items]
+                            for item in items:
+                                sym = item.get("s", "").replace("-", "")
+                                price = item.get("c") or item.get("p")
+                                if sym.endswith("USDT") and price:
+                                    live_prices["BingX"][sym] = float(price)
+                            if live_prices["BingX"]:
+                                exchange_stats["BingX"] = f"OK WS ({len(live_prices['BingX'])} монет)"
+        except Exception as e:
+            exchange_stats["BingX"] = f"WS реконнект: {str(e)[:25]}"
+            await asyncio.sleep(5)
+
 
 
 
