@@ -241,21 +241,27 @@ async def set_short_pct(message: types.Message, state: FSMContext):
 
 
 async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
-    url = "https://bybit.com"
+    urls = [
+        "https://bybit.com",
+        "https://bytick.com"
+    ]
+    headers = {"User-Agent": "Mozilla/5.0"}
     prices = {}
-    try:
-        async with session.get(url, timeout=10) as resp:
-            if resp.status != 200:
-                exchange_stats["ByBit"] = f"HTTP {resp.status} (Блок IP)"
-                return prices
-            data = await resp.json()
-            for item in data.get("result", {}).get("list", []):
-                symbol = item.get("symbol", "")
-                if symbol.endswith("USDT"):
-                    prices[symbol] = float(item["lastPrice"])
-            exchange_stats["ByBit"] = f"OK ({len(prices)} пар)"
-    except Exception as e:
-        exchange_stats["ByBit"] = f"Ошибка: {str(e)[:40]}"
+    for url in urls:
+        try:
+            async with session.get(url, headers=headers, timeout=10) as resp:
+                if resp.status == 200:
+                    data = await resp.json(content_type=None)
+                    for item in data.get("result", {}).get("list", []):
+                        symbol = item.get("symbol", "")
+                        if symbol.endswith("USDT"):
+                            prices[symbol] = float(item["lastPrice"])
+                    exchange_stats["ByBit"] = f"OK ({len(prices)} пар)"
+                    return prices
+                else:
+                    exchange_stats["ByBit"] = f"HTTP {resp.status} (Нужен регион EU)"
+        except Exception as e:
+            exchange_stats["ByBit"] = f"Ошибка: {str(e)[:35]}"
     return prices
 
 
@@ -267,15 +273,16 @@ async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
             if resp.status != 200:
                 exchange_stats["BingX"] = f"HTTP {resp.status}"
                 return prices
-            data = await resp.json()
+            data = await resp.json(content_type=None)
             for item in data.get("data", []):
                 symbol = item.get("symbol", "").replace("-", "")
                 if symbol.endswith("USDT"):
                     prices[symbol] = float(item["lastPrice"])
             exchange_stats["BingX"] = f"OK ({len(prices)} пар)"
     except Exception as e:
-        exchange_stats["BingX"] = f"Ошибка: {str(e)[:40]}"
+        exchange_stats["BingX"] = f"Ошибка: {str(e)[:35]}"
     return prices
+
 
 
 async def check_signals(exchange: str, prices: dict, now: float):
