@@ -320,7 +320,8 @@ async def bybit_ws_worker():
 
 
 async def bingx_ws_worker():
-    ws_url = "wss://bingx.com"
+    ws_url = "wss://" + "://bingx.com"
+
     while True:
         try:
             async with aiohttp.ClientSession() as session:
