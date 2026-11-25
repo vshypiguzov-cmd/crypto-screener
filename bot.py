@@ -365,17 +365,14 @@ async def send_alert(exchange: str, symbol: str, direction: str, pct: float, min
 
 
 async def screener_loop():
-    async with aiohttp.ClientSession() as session:
-        while True:
-            if config["running"] and config["chat_id"]:
-                now = time.time()
-                if config["bybit"]:
-                    bybit_prices = await fetch_bybit_prices(session)
-                    await check_signals("ByBit", bybit_prices, now)
-                if config["bingx"]:
-                    bingx_prices = await fetch_bingx_prices(session)
-                    await check_signals("BingX", bingx_prices, now)
-            await asyncio.sleep(10)
+    while True:
+        if config["running"] and config["chat_id"]:
+            now = time.time()
+            if config["bybit"] and live_prices["ByBit"]:
+                await check_signals("ByBit", dict(live_prices["ByBit"]), now)
+            if config["bingx"] and live_prices["BingX"]:
+                await check_signals("BingX", dict(live_prices["BingX"]), now)
+        await asyncio.sleep(5)
 
 
 async def handle_ping(request):
@@ -391,9 +388,12 @@ async def main():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
+    asyncio.create_task(bybit_ws_worker())
+    asyncio.create_task(bingx_ws_worker())
     asyncio.create_task(screener_loop())
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
