@@ -242,8 +242,9 @@ async def set_short_pct(message: types.Message, state: FSMContext):
 
 async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
     urls = [
-        "https://bybit.com",
-        "https://bytick.com"
+          "https://bybit.com",
+     "https://bytick.com"
+   
     ]
     headers = {"User-Agent": "Mozilla/5.0"}
     prices = {}
@@ -266,7 +267,8 @@ async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
 
 
 async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
-    url = "https://bingx.com"
+    url ="https://bingx.com"
+
     prices = {}
     try:
         async with session.get(url, timeout=10) as resp:
