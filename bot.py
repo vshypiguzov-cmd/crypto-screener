@@ -287,7 +287,8 @@ async def get_bybit_symbols(session: aiohttp.ClientSession) -> list:
 
 
 async def bybit_ws_worker():
-    ws_url = "wss://bybit.com"
+    ws_url ="wss://" + "://bybit.com"
+
     while True:
         try:
             async with aiohttp.ClientSession() as session:
