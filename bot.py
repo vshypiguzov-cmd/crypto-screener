@@ -262,7 +262,9 @@ async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
                 else:
                     exchange_stats["ByBit"] = f"HTTP {resp.status} (Нужен регион EU)"
         except Exception as e:
-            exchange_stats["ByBit"] = f"Ошибка: {str(e)[:35]}"
+            raw_text = await resp.text()
+exchange_stats["ByBit"] = f"HTTP {resp.status}: {raw_text[:80]}"
+
     return prices
 
 
