@@ -242,11 +242,12 @@ async def set_short_pct(message: types.Message, state: FSMContext):
 
 async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
     urls = [
-          "https://bybit.com",
-     "https://bytick.com"
-   
+        "https://bybit.com",
+        "https://bytick.com"
     ]
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
     prices = {}
     for url in urls:
         try:
@@ -257,23 +258,24 @@ async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
                         symbol = item.get("symbol", "")
                         if symbol.endswith("USDT"):
                             prices[symbol] = float(item["lastPrice"])
-                    exchange_stats["ByBit"] = f"OK ({len(prices)} пар)"
+                    exchange_stats["ByBit"] = f"OK ({len(prices)} монет)"
                     return prices
                 else:
-                    exchange_stats["ByBit"] = f"HTTP {resp.status} (Нужен регион EU)"
+                    exchange_stats["ByBit"] = f"HTTP {resp.status}"
         except Exception as e:
-            raw_text = await resp.text()
-exchange_stats["ByBit"] = f"HTTP {resp.status}: {raw_text[:80]}"
-
+            exchange_stats["ByBit"] = f"Ошибка: {str(e)[:30]}"
     return prices
 
 
-async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
-    url ="https://bingx.com"
 
+async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
+    url = "https://bingx.com"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
     prices = {}
     try:
-        async with session.get(url, timeout=10) as resp:
+        async with session.get(url, headers=headers, timeout=10) as resp:
             if resp.status != 200:
                 exchange_stats["BingX"] = f"HTTP {resp.status}"
                 return prices
@@ -282,10 +284,11 @@ async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
                 symbol = item.get("symbol", "").replace("-", "")
                 if symbol.endswith("USDT"):
                     prices[symbol] = float(item["lastPrice"])
-            exchange_stats["BingX"] = f"OK ({len(prices)} пар)"
+            exchange_stats["BingX"] = f"OK ({len(prices)} монет)"
     except Exception as e:
-        exchange_stats["BingX"] = f"Ошибка: {str(e)[:35]}"
+        exchange_stats["BingX"] = f"Ошибка: {str(e)[:30]}"
     return prices
+
 
 
 
