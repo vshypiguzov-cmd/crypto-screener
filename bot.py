@@ -10,7 +10,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 # ВСТАВЬТЕ СЮДА ТОКЕН ОТ @BotFather
-BOT_TOKEN ="9002976959:AAHUPvJv3SMhqJqfheel5W5js-Lv1G124_Y"
+BOT_TOKEN ="9002976959:AAGcDT_D2AEesKbKsp-NX7347Wvvg66pqCI"
 
 
 logging.basicConfig(level=logging.INFO)
