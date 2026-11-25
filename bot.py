@@ -11,8 +11,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-# ВСТАВЬТЕ СЮДА ВАШ ТОКЕН ОТ @BotFather
-BOT_TOKEN = "9002976959:AAHUPvJv3SMhqJqfheel5W5js-Lv1G124_Y"
+# ВСТАВЬТЕ СЮДА ВАШ ТОКЕН ="9002976959:AAHUPvJv3SMhqJqfheel5W5js-Lv1G124_Y"
+
 
 
 logging.basicConfig(level=logging.INFO)
