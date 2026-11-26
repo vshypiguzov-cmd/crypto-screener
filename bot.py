@@ -337,16 +337,26 @@ async def send_alert(exchange: str, symbol: str, direction: str, pct: float, min
     action_icon = "📈" if direction == "LONG" else "📉"
     action_label = "Pump" if direction == "LONG" else "Dump"
 
+    bybit_url = f"https://www_bybit_com/trade/usdt/{symbol}".replace("_", ".")
+    coinglass_url = f"https://www_coinglass_com/tv/Bybit_{symbol}".replace("_", ".", 2)
+
     text = (
         f"{ex_icon} {exchange} – {minutes}м – `{symbol}`\n"
         f"{action_icon} {action_label}: **{abs(pct):.2f}%** ({format_price(old_p)}-{format_price(new_p)})\n"
-        f"🧬 Signal 24h: {count_24h}"
+        f"🧬 Signal 24h: {count_24h}\n"
+        f"🔗 [Открыть на Bybit]({bybit_url})  |  📊 [CoinGlass]({coinglass_url})"
     )
 
     try:
-        await bot.send_message(config["chat_id"], text, parse_mode="Markdown")
+        await bot.send_message(
+            config["chat_id"],
+            text,
+            parse_mode="Markdown",
+            disable_web_page_preview=True
+        )
     except Exception as e:
         logging.error(f"Ошибка отправки: {e}")
+
 
 
 async def screener_loop():
