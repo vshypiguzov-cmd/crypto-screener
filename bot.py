@@ -264,23 +264,23 @@ async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
 
 
 async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
-    url = WORKER_BASE + "/bingx"
+    url = "https://data-api_binance_vision/api/v3/ticker/price".replace("_", ".")
     prices = {}
     try:
         async with session.get(url, timeout=10) as resp:
             if resp.status == 200:
                 data = await resp.json(content_type=None)
-                for item in data.get("data", []):
-                    symbol = item.get("symbol", "").replace("-", "")
+                for item in data:
+                    symbol = item.get("symbol", "")
                     if symbol.endswith("USDT"):
-                        prices[symbol] = float(item["lastPrice"])
+                        prices[symbol] = float(item["price"])
                 exchange_stats["BingX"] = f"OK ({len(prices)} монет)"
             else:
-                text = await resp.text()
-                exchange_stats["BingX"] = f"HTTP {resp.status}: {text[:40]}"
+                exchange_stats["BingX"] = f"HTTP {resp.status}"
     except Exception as e:
         exchange_stats["BingX"] = f"Ошибка: {str(e)[:30]}"
     return prices
+
 
 
 
