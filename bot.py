@@ -240,12 +240,11 @@ async def set_short_pct(message: types.Message, state: FSMContext):
     await message.answer("❌ Введите корректное число (например, 10).")
 
 
-WORKER_URL = "https://" + "pamp-relai-2026.vshypiguzov.workers.dev/?url="
+WORKER_BASE = "https://" + "pamp-relai-2026.vshypiguzov.workers.dev"
 
 
 async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
-    target = "https://" + "://bybit.com"
-    url = WORKER_URL + target
+    url = WORKER_BASE + "/bybit"
     prices = {}
     try:
         async with session.get(url, timeout=10) as resp:
@@ -257,15 +256,15 @@ async def fetch_bybit_prices(session: aiohttp.ClientSession) -> dict:
                         prices[symbol] = float(item["lastPrice"])
                 exchange_stats["ByBit"] = f"OK ({len(prices)} монет)"
             else:
-                exchange_stats["ByBit"] = f"HTTP {resp.status}"
+                text = await resp.text()
+                exchange_stats["ByBit"] = f"HTTP {resp.status}: {text[:40]}"
     except Exception as e:
         exchange_stats["ByBit"] = f"Ошибка: {str(e)[:30]}"
     return prices
 
 
 async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
-    target = "https://" + "://bingx.com"
-    url = WORKER_URL + target
+    url = WORKER_BASE + "/bingx"
     prices = {}
     try:
         async with session.get(url, timeout=10) as resp:
@@ -277,10 +276,12 @@ async def fetch_bingx_prices(session: aiohttp.ClientSession) -> dict:
                         prices[symbol] = float(item["lastPrice"])
                 exchange_stats["BingX"] = f"OK ({len(prices)} монет)"
             else:
-                exchange_stats["BingX"] = f"HTTP {resp.status}"
+                text = await resp.text()
+                exchange_stats["BingX"] = f"HTTP {resp.status}: {text[:40]}"
     except Exception as e:
         exchange_stats["BingX"] = f"Ошибка: {str(e)[:30]}"
     return prices
+
 
 
 async def check_signals(exchange: str, prices: dict, now: float):
