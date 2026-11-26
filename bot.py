@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-BOT_TOKEN = 9002976959:AAG3OVfdRZdmheB-gVJhYDYKQ1rl_vuO2sk
+BOT_TOKEN = "9002976959:AAG3OVfdRZdmheB-gVJhYDYKQ1rl_vuO2sk"
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
